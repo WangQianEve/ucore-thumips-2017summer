@@ -2,12 +2,12 @@ EMPTY	:=
 SPACE	:= $(EMPTY) $(EMPTY)
 SLASH	:= /
 
-ON_FPGA :=y
+ON_FPGA :=n
 
 V       := @
 
 #GCCPREFIX:=mips-sde-elf-
-GCCPREFIX ?= /home/guest/cpu/build-gcc/mips_gcc/bin/mips-sde-elf-
+GCCPREFIX ?= /opt/mips-2012.03/bin/mips-sde-elf-
 
 # eliminate default suffix rules
 .SUFFIXES: .c .S .h
