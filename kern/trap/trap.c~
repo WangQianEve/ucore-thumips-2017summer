@@ -269,6 +269,7 @@ trap_dispatch(struct trapframe *tf) {
 
 }
 
+
 /*
  * General trap (exception) handling function for mips.
  * This is called by the assembly-language exception handler once

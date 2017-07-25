@@ -3,8 +3,10 @@
 
 #include <thumips.h>
 #include <asm/mipsregs.h>
+#if 0
 void intr_enable(void);
 void intr_disable(void);
+#endif
 
 
 static inline bool
