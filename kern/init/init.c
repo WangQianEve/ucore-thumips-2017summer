@@ -23,28 +23,19 @@ void setup_exception_vector()
 
 void __noreturn
 kern_init(void) {
-    //setup_exception_vector();
     tlb_invalidate_all();
 
-    pic_init();                 // init interrupt controller
     cons_init();                // init the console
-    clock_init();               // init clock interrupt
 
     check_initrd();
 
-    const char *message = "(THU.CST) os is loading ...\n\n";
-    kprintf(message);
+    const char *message = "(THU.CST) os is loading ...";
+    kprintf("%s\n\n",message);
 
     print_kerninfo();
-
-#if 0
-    kprintf("EX\n");
-    __asm__ volatile("syscall");
-    kprintf("EX RET\n");
-#endif
-
     pmm_init();                 // init physical memory management
 
+    pic_init();                 // init interrupt controller
     vmm_init();                 // init virtual memory management
     sched_init();
     proc_init();                // init process table
@@ -52,9 +43,8 @@ kern_init(void) {
     ide_init();
     fs_init();
 
+    clock_init();               // init clock interrupt
     intr_enable();              // enable irq interrupt
-    //*(int*)(0x00124) = 0x432;
-    //asm volatile("divu $1, $1, $1");
     cpu_idle();
 }
 
