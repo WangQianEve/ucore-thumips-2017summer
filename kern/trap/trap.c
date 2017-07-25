@@ -1,30 +1,28 @@
 #include <defs.h>
-#include <asm/mipsregs.h>
+#include <mmu.h>
+#include <memlayout.h>
 #include <clock.h>
 #include <trap.h>
 #include <thumips.h>
-#include <thumips_tlb.h>
 #include <stdio.h>
-#include <mmu.h>
-#include <pmm.h>
-#include <memlayout.h>
-#include <glue_pgmap.h>
 #include <assert.h>
 #include <console.h>
 #include <kdebug.h>
 #include <error.h>
 #include <syscall.h>
 #include <proc.h>
+#include <asm/mipsregs.h>
+#include <thumips_tlb.h>
+#include <pmm.h>
+#include <glue_pgmap.h>
 
 #define TICK_NUM 100
 
 #define GET_CAUSE_EXCODE(x)   ( ((x) & CAUSEF_EXCCODE) >> CAUSEB_EXCCODE)
 
 static void print_ticks() {
-    PRINT_HEX("%d ticks\n",TICK_NUM);
+    cprintf("%d ticks\n",TICK_NUM);
 }
-
-
 
 static const char *
 trapname(int trapno) {
@@ -43,7 +41,7 @@ trapname(int trapno) {
         "Coprocessor unusable",
         "Arithmetic overflow",
     };
-    if(trapno <= 12)
+    if (trapno < sizeof(excnames)/sizeof(const char * const)) 
       return excnames[trapno];
     else
       return "Unknown";
@@ -54,35 +52,30 @@ trap_in_kernel(struct trapframe *tf) {
   return !(tf->tf_status & KSU_USER);
 }
 
+void
+print_trapframe(struct trapframe *tf) {
+    cprintf("trapframe at 0x%08x\n", tf);
+    print_regs(&tf->tf_regs);
+    cprintf(" $ra\t: 0x%08x\n", tf->tf_ra);
+    cprintf(" BadVA\t: 0x%08x\n", tf->tf_vaddr);
+    cprintf(" Status\t: 0x%08x\n", tf->tf_status);
+    cprintf(" Cause\t: 0x%08x\n", tf->tf_cause);
+    cprintf(" EPC\t: 0x%08x\n", tf->tf_epc);
+    if (!trap_in_kernel(tf)) {
+      cprintf("Trap in usermode: ");
+    }else{
+      cprintf("Trap in kernel: ");
+    }
+    cprintf(trapname(GET_CAUSE_EXCODE(tf->tf_cause)));
+    cputchar('\n');
+}
 
 void print_regs(struct pushregs *regs)
 {
   int i;
   for (i = 0; i < 30; i++) {
-    kprintf(" $");
-    printbase10(i+1);
-    kprintf("\t: ");
-    printhex(regs->reg_r[i]);
-    kputchar('\n');
+    cprintf(" $%d\t: 0x%08x\n", i+1, regs->reg_r[i]);
   }
-}
-
-void
-print_trapframe(struct trapframe *tf) {
-    PRINT_HEX("trapframe at ", tf);
-    print_regs(&tf->tf_regs);
-    PRINT_HEX(" $ra\t: ", tf->tf_ra);
-    PRINT_HEX(" BadVA\t: ", tf->tf_vaddr);
-    PRINT_HEX(" Status\t: ", tf->tf_status);
-    PRINT_HEX(" Cause\t: ", tf->tf_cause);
-    PRINT_HEX(" EPC\t: ", tf->tf_epc);
-    if (!trap_in_kernel(tf)) {
-      kprintf("Trap in usermode: ");
-    }else{
-      kprintf("Trap in kernel: ");
-    }
-    kprintf(trapname(GET_CAUSE_EXCODE(tf->tf_cause)));
-    kputchar('\n');
 }
 
 static void interrupt_handler(struct trapframe *tf)
@@ -124,17 +117,7 @@ static inline int get_error_code(int write, pte_t *pte)
 
 static int
 pgfault_handler(struct trapframe *tf, uint32_t addr, uint32_t error_code) {
-#if 0
-    extern struct mm_struct *check_mm_struct;
-    if (check_mm_struct != NULL) {
-        return do_pgfault(check_mm_struct, error_code, addr);
-    }
-    panic("unhandled page fault.\n");
-#endif
   extern struct mm_struct *check_mm_struct;
-  if(check_mm_struct !=NULL) { //used for test check_swap
-    //print_pgfault(tf);
-  }
   struct mm_struct *mm;
   if (check_mm_struct != NULL) {
     assert(current == idleproc);
@@ -151,40 +134,18 @@ pgfault_handler(struct trapframe *tf, uint32_t addr, uint32_t error_code) {
   return do_pgfault(mm, error_code, addr);
 }
 
-/* use software emulated X86 pgfault */
+/* use software emulated mips pgfault */
 static void handle_tlbmiss(struct trapframe* tf, int write)
 {
-#if 0
-  if(!trap_in_kernel(tf)){
-    print_trapframe(tf);
-    while(1);
-  }
-#endif
-
-  static int entercnt = 0;
-  entercnt ++;
-  //kprintf("## enter handle_tlbmiss %d times\n", entercnt);
   int in_kernel = trap_in_kernel(tf);
   assert(current_pgdir != NULL);
-  //print_trapframe(tf);
   uint32_t badaddr = tf->tf_vaddr;
   int ret = 0;
   pte_t *pte = get_pte(current_pgdir, tf->tf_vaddr, 0);
   if(pte==NULL || ptep_invalid(pte)){   //PTE miss, pgfault
-    //panic("unimpl");
-    //TODO
-    //tlb will not be refill in do_pgfault,
-    //so a vmm pgfault will trigger 2 exception
-    //permission check in tlb miss
     ret = pgfault_handler(tf, badaddr, get_error_code(write, pte));
   }else{ //tlb miss only, reload it
-    /* refill two slot */
-    /* check permission */
-    if(in_kernel){
-      tlb_refill(badaddr, pte); 
-    //kprintf("## refill K\n");
-      return;
-    }else{
+    if(!in_kernel){
       if(!ptep_u_read(pte)){
         ret = -1;
         goto exit;
@@ -193,10 +154,9 @@ static void handle_tlbmiss(struct trapframe* tf, int write)
         ret = -2;
         goto exit;
       }
-    //kprintf("## refill U %d %08x\n", write, badaddr);
-      tlb_refill(badaddr, pte);
-      return ;
     }
+    tlb_refill(badaddr, pte);
+    return ;
   }
 
 exit:
@@ -224,32 +184,6 @@ trap_dispatch(struct trapframe *tf) {
     case EX_TLBS:
       handle_tlbmiss(tf, 1);
       break;
-    case EX_RI:
-      print_trapframe(tf);
-      if(trap_in_kernel(tf)) {
-        panic("hey man! Do NOT use that insn!");
-      }
-      do_exit(-E_KILLED);
-      break;
-    case EX_CPU:
-      print_trapframe(tf);
-      if(trap_in_kernel(tf)) {
-        panic("CpU exception should not occur in kernel mode!");
-      }
-      do_exit(-E_KILLED);
-      break;
-    case EX_OVF:
-      print_trapframe(tf);
-      if(trap_in_kernel(tf)) {
-        panic("Ov exception occur in kernel mode!");
-      }
-      do_exit(-E_KILLED);
-      break;
-    case EX_SYS:
-      //print_trapframe(tf);
-      tf->tf_epc += 4;
-      syscall();
-      break;
       /* alignment error or access kernel
        * address space in user mode */
     case EX_ADEL:
@@ -259,8 +193,34 @@ trap_dispatch(struct trapframe *tf) {
         panic("Alignment Error");
       }else{
         print_trapframe(tf);
+        panic("Cannot access kernel in user mode");
         do_exit(-E_KILLED);
       }
+      break;
+    case EX_SYS:
+      tf->tf_epc += 4;
+      syscall();
+      break;
+    case EX_RI:
+      print_trapframe(tf);
+      if(trap_in_kernel(tf)) {
+        panic("Do NOT use reserved instruction!");
+      }
+      do_exit(-E_KILLED);
+      break;
+    case EX_CPU:
+      print_trapframe(tf);
+      if(trap_in_kernel(tf)) {
+        panic("Cpu exception should not occur in kernel mode!");
+      }
+      do_exit(-E_KILLED);
+      break;
+    case EX_OVF:
+      print_trapframe(tf);
+      if(trap_in_kernel(tf)) {
+        panic("Overflow exception occur in kernel mode!");
+      }
+      do_exit(-E_KILLED);
       break;
     default:
       print_trapframe(tf);
@@ -269,14 +229,14 @@ trap_dispatch(struct trapframe *tf) {
 
 }
 
-/*
- * General trap (exception) handling function for mips.
- * This is called by the assembly-language exception handler once
- * the trapframe has been set up.
- */
-  void
-mips_trap(struct trapframe *tf)
-{
+
+/* *
+ * trap - handles or dispatches an exception/interrupt. if and when trap() returns,
+ * the code in kern/trap/trapentry.S restores the old CPU state saved in the
+ * trapframe and then uses the iret instruction to return from the exception.
+ * */
+void 
+mips_trap(struct trapframe *tf) {
   // dispatch based on what type of trap occurred
   // used for previous projects
   if (current == NULL) {

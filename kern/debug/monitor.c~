@@ -104,7 +104,7 @@ int
 mon_help(int argc, char **argv, struct trapframe *tf) {
     int i;
     for (i = 0; i < NCOMMANDS; i ++) {
-        cprintf("%s - %s\n", commands[i].name, commands[i].desc);
+        kprintf("%s - %s\n", commands[i].name, commands[i].desc);
     }
     return 0;
 }

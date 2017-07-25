@@ -3,6 +3,7 @@
 
 #include <thumips.h>
 #include <asm/mipsregs.h>
+
 void intr_enable(void);
 void intr_disable(void);
 
@@ -25,5 +26,6 @@ __intr_restore(bool flag) {
 
 #define local_intr_save(x)      do { x = __intr_save(); } while (0)
 #define local_intr_restore(x)   __intr_restore(x);
+
 #endif /* !__KERN_DRIVER_INTR_H__ */
 

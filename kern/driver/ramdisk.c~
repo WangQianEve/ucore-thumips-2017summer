@@ -60,7 +60,7 @@ static int ramdisk_write(struct ide_device* dev, size_t secno,const  void *src, 
 }
 
 static void ramdisk_init(struct ide_device* dev){
-  cprintf("ramdisk_init(): initrd found, magic: 0x%08x, 0x%08x secs\n", *(uint32_t*)(dev->iobase), dev->size);
+  kprintf("ramdisk_init(): initrd found, magic: 0x%08x, 0x%08x secs\n", *(uint32_t*)(dev->iobase), dev->size);
 
 }
 

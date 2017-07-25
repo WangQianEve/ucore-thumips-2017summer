@@ -187,7 +187,7 @@ sfs_do_mount(struct device *dev, struct fs **fs_store) {
     sem_init(&(sfs->io_sem), 1);
     sem_init(&(sfs->mutex_sem), 1);
     list_init(&(sfs->inode_list));
-    cprintf("sfs: mount: '%s' (%d/%d/%d)\n", sfs->super.info,
+    kprintf("sfs: mount: '%s' (%d/%d/%d)\n", sfs->super.info,
             blocks - unused_blocks, unused_blocks, blocks);
 
     fs->fs_sync = sfs_sync;

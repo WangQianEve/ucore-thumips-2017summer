@@ -136,7 +136,6 @@ $(DEP_DIR):
 	@mkdir -p $@
 
 clean:
-	-rm -rf $(BUILD_DIR)
 	-rm -rf $(DEPDIR)
 	-rm -rf boot/loader.o boot/loader boot/loader.bin
 	-$(RM) -r $(OBJDIR) $(BINDIR)

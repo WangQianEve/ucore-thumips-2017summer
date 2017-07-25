@@ -91,13 +91,13 @@ page_init(void) {
     SetPageReserved(pages + i);
   }
   uintptr_t freemem = PADDR((uintptr_t)pages + sizeof(struct Page) * npage);
-  cprintf("freemem start at: %08x", freemem);
+  kprintf("freemem start at: %08x", freemem);
   uint32_t mbegin = ROUNDUP_2N(freemem, PGSHIFT);
   uint32_t mend = ROUNDDOWN_2N(KERNTOP, PGSHIFT);
   assert( mbegin < mend );
   init_memmap(pa2page(mbegin), (mend - mbegin) >> PGSHIFT );
-  cprintf("free pages: %08x", (mend-mbegin)>>PGSHIFT);
-  cprintf("## %08x", sizeof(struct Page));
+  kprintf("free pages: %08x", (mend-mbegin)>>PGSHIFT);
+  kprintf("## %08x", sizeof(struct Page));
 }
 //boot_map_segment - setup&enable the paging mechanism
 // parameters

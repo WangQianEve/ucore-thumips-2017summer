@@ -27,3 +27,4 @@ print_kerninfo(void) {
     cprintf("Kernel executable memory footprint: %dKB\n", (end - kern_init + 1023)/1024);
 }
 
+

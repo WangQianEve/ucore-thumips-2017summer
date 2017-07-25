@@ -48,14 +48,14 @@ struct pushregs {
  */
 
 struct trapframe {
-	uint32_t tf_vaddr;	/* coprocessor 0 vaddr register */
+	uint32_t tf_vaddr;	/* coprocessor 0 vaddr register  */
 	uint32_t tf_status;	/* coprocessor 0 status register */
-	uint32_t tf_cause;	/* coprocessor 0 cause register */
+	uint32_t tf_cause;	/* coprocessor 0 cause register  */
 	uint32_t tf_lo;
 	uint32_t tf_hi;
-	uint32_t tf_ra;	/* Saved register 31 */
+	uint32_t tf_ra;		/* Saved register 31 		 */
   struct pushregs tf_regs;
-	uint32_t tf_epc;	/* coprocessor 0 epc register */
+	uint32_t tf_epc;	/* coprocessor 0 epc register 	 */
 };
 
 /*
