@@ -29,7 +29,6 @@ kern_init(void) {
 
     const char *message = "(THU.CST) os is loading ...";
     cprintf("%s\n\n", message);
-
     check_initrd();
     print_kerninfo();
 
